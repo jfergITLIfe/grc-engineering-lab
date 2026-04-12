@@ -1,176 +1,142 @@
-# Week 01 — Root Account Exposure Check
+<div align="center">
 
-**GRC Engineering Lab Series**
-`Python` `boto3` `IAM` `CIS AWS v5.0` `SOC 2` `NIST 800-53`
+# 🔒 GRC Engineering Lab
 
----
+**Automated Compliance. Real Findings. Production-Ready.**
 
-## What This Does
-
-Audits your AWS root account for two of the highest-severity misconfigurations in the CIS AWS Foundations Benchmark:
-
-- **CIS 1.3** — No root user access key exists
-- **CIS 1.4** — MFA is enabled for the root user
-
-Outputs a pass/fail compliance report to the terminal and saves a structured JSON artifact you can use as audit evidence.
+![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-Security%20Stack-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white)
+![Claude](https://img.shields.io/badge/AI-Bedrock%20%7C%20Sonnet%204.6-CC785C?style=for-the-badge&logo=anthropic&logoColor=white)
+![IaC](https://img.shields.io/badge/IaC-CloudFormation-232F3E?style=for-the-badge&logo=amazonwebservices&logoColor=white)
 
 ---
 
-## Why This Matters
+A portfolio of hands-on GRC engineering projects built in real AWS environments with real findings, real frameworks, and production-grade automation. Each project demonstrates a different aspect of modern GRC engineering: compliance automation, security assessment, risk reporting, and AI-powered analysis.
 
-The root account is the most privileged identity in AWS. It bypasses IAM policies entirely. A root access key exposed in a breach, a leaked `.env` file, or a misconfigured CI/CD pipeline gives an attacker unrestricted access to every resource in your account with no IAM boundary to stop them.
-
-This is the first thing an auditor checks. It should be the first thing you automate.
+</div>
 
 ---
 
-## Framework Mapping
+## 📂 Projects
 
-| Control | CIS AWS v5.0 | SOC 2 | NIST 800-53 Rev 5 |
-|---------|-------------|-------|-------------------|
-| No root access key exists | 1.3 | CC6.3 | AC-2 |
-| MFA enabled for root user | 1.4 | CC6.1 | IA-2 |
+### 1. [AWS Automated Access Review](./aws_automated_access_review)
 
-**SOC 2 context:**
-- CC6.1 — Logical access security controls, including MFA enforcement
-- CC6.3 — Access is removed or modified when no longer appropriate
+**Status:** ✅ Complete
 
-**NIST 800-53 context:**
-- AC-2 — Account Management: restricting use of privileged accounts
-- IA-2 — Identification and Authentication: MFA for privileged users
+An end-to-end automated IAM security access review system. Collects findings across multiple AWS security services, generates AI-powered executive narratives via Amazon Bedrock, and delivers audit-ready compliance reports to stakeholders.
+
+**What I Built:**
+
+| Extension | Description |
+|-----------|-------------|
+| **AI Model Upgrade** | Replaced legacy Claude v2 with **Claude Sonnet 4.6** via Bedrock Messages API. Full refactor of request/response handling. |
+| **GRC Dashboard** | **Streamlit** visualization layer pulling live data from S3. Severity distribution, category breakdown, compliance coverage, and detailed finding cards. |
+| **Live AWS Environment** | Deployed a full security stack (Security Hub, IAM Access Analyzer, SES, Bedrock) generating **real findings against a real account**. |
+
+**Architecture:**
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                      AWS Account (us-east-1)                     │
+│                                                                  │
+│   ┌─────────────┐   ┌──────────────────┐   ┌──────────────┐     │
+│   │  Security    │   │   IAM Access     │   │  CloudTrail  │     │
+│   │    Hub       │   │   Analyzer       │   │              │     │
+│   └──────┬──────┘   └────────┬─────────┘   └──────┬───────┘     │
+│          │                   │                     │             │
+│          └───────────────────┼─────────────────────┘             │
+│                              │                                   │
+│                    ┌─────────▼──────────┐                        │
+│                    │   Lambda Function  │                        │
+│                    │    (Collector)     │                        │
+│                    └─────────┬──────────┘                        │
+│                              │                                   │
+│              ┌───────────────┼───────────────┐                   │
+│              │               │               │                   │
+│       ┌──────▼─────┐  ┌─────▼──────┐  ┌─────▼──────┐           │
+│       │     S3     │  │  Bedrock   │  │    SES     │           │
+│       │  (Reports) │  │(Sonnet 4.6)│  │  (Email)   │           │
+│       └──────┬─────┘  └────────────┘  └────────────┘           │
+│              │                                                   │
+└──────────────┼───────────────────────────────────────────────────┘
+               │
+        ┌──────▼──────┐
+        │  Streamlit  │
+        │  Dashboard  │
+        └─────────────┘
+```
+
+**Tech Stack:** Lambda, Bedrock (Sonnet 4.6), Security Hub, IAM Access Analyzer, CloudTrail, CloudFormation, S3, SES, Streamlit, Plotly
+
+**Compliance Mapping:** CIS AWS Foundations, NIST 800-53 Rev 5, SOC 2 TSC, PCI DSS v4.0, AWS Well-Architected
 
 ---
 
-## Prerequisites
+### 2. Coming Soon
 
-- Python 3.8+
-- boto3 installed (`pip install boto3`)
-- AWS credentials configured (`aws configure` or environment variables)
-- IAM permissions: `iam:GenerateCredentialReport`, `iam:GetCredentialReport`, `sts:GetCallerIdentity`
+More projects in development. Future labs will cover areas like:
+
+- Infrastructure hardening and configuration compliance
+- Continuous monitoring and alerting pipelines
+- Policy-as-code and preventive controls
+- Risk quantification and reporting automation
 
 ---
 
-## Usage
+## 🔗 Compliance Frameworks Covered
 
-```bash
-# Clone the repo
-git clone https://github.com/jfergITLife/grc-engineering-lab.git
-cd grc-engineering-lab/week-01-root-account-audit
+| Framework | Projects |
+|-----------|----------|
+| **CIS AWS Foundations Benchmark** | Access Review |
+| **NIST 800-53 Rev 5** | Access Review |
+| **SOC 2 TSC** | Access Review |
+| **PCI DSS v4.0** | Access Review |
+| **AWS Well-Architected** | Access Review |
 
-# Install dependency
-pip install boto3
+---
 
-# Run the audit
-python root_audit.py
+## ⚡ Core Tech Stack
+
+| Layer | Technologies |
+|-------|-------------|
+| **Compute** | AWS Lambda (Python 3.11) |
+| **AI/ML** | Amazon Bedrock (Claude Sonnet 4.6) |
+| **Security Services** | Security Hub, IAM Access Analyzer, CloudTrail |
+| **Infrastructure** | CloudFormation |
+| **Storage** | Amazon S3 |
+| **Visualization** | Streamlit, Plotly, Pandas |
+| **Notifications** | Amazon SES |
+
+---
+
+## 📁 Repo Structure
+
+```
+grc-engineering-lab/
+├── aws_automated_access_review/    # Project 1: Automated Access Review
+│   ├── src/lambda/                 #   Lambda function + modules
+│   ├── dashboard/                  #   Streamlit dashboard
+│   ├── templates/                  #   CloudFormation IaC
+│   ├── scripts/                    #   Deploy + run scripts
+│   └── tests/                      #   Unit + integration tests
+├── .gitignore
+└── README.md
 ```
 
 ---
 
-## Sample Output
+## 👤 About
 
-```
-============================================================
-  Root Account Exposure Check
-  GRC Engineering Lab — Week 01
-============================================================
-  Account : 123456789012
-  Run At  : 2026-04-09T18:00:00Z
-------------------------------------------------------------
-  Checks  : 2
-  Passed  : 2
-  Failed  : 0
-  Errors  : 0
-  Posture : PASS
-============================================================
+Built by **Jacob Ferguson** — Navy veteran, cybersecurity analyst, Rice MBA candidate, and GRC engineer.
 
-  ✅  [PASS] CIS 1.3 — No root user access key exists
-      No root access keys found.
-      Frameworks: CIS AWS v5.0: 1.3 | SOC 2: CC6.3 | NIST 800-53 Rev 5: AC-2
+- [LinkedIn](https://linkedin.com/in/itlife)
+- [GitHub](https://github.com/jfergITLife)
 
-  ✅  [PASS] CIS 1.4 — MFA enabled for root user
-      MFA is enabled on the root account.
-      Frameworks: CIS AWS v5.0: 1.4 | SOC 2: CC6.1 | NIST 800-53 Rev 5: IA-2
-
-============================================================
-```
 
 ---
 
-## Output Artifact
+<div align="center">
 
-Running the script saves `root_audit_report.json` — a structured compliance report you can attach as audit evidence or feed into a larger reporting pipeline.
+*Built with real tools. Real findings. Real frameworks.*
 
-```json
-{
-  "report": "Root Account Exposure Check",
-  "lab": "GRC Engineering Lab — Week 01",
-  "account_id": "123456789012",
-  "generated_at": "2026-04-09T18:00:00Z",
-  "summary": {
-    "total_checks": 2,
-    "passed": 2,
-    "failed": 0,
-    "errors": 0,
-    "posture": "PASS"
-  },
-  "findings": [...]
-}
-```
-
----
-
-## Remediation
-
-**If CIS 1.3 FAILS — root access key exists:**
-1. AWS Console → IAM → Security credentials (signed in as root)
-2. Under "Access keys" — deactivate and delete all keys
-3. Re-run this script to confirm
-
-**If CIS 1.4 FAILS — root MFA not enabled:**
-1. AWS Console → IAM → Security credentials (signed in as root)
-2. Under "Multi-factor authentication (MFA)" — assign an MFA device
-3. Re-run this script to confirm
-
----
-
-## IAM Policy for Least-Privilege Execution
-
-If you want to run this with a dedicated audit role instead of your default credentials:
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "iam:GenerateCredentialReport",
-        "iam:GetCredentialReport",
-        "sts:GetCallerIdentity"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
-
----
-
-## Part of a Series
-
-This lab is Week 01 of a monthly IAM Hardening Audit Suite.
-
-| Week | Lab | Focus |
-|------|-----|-------|
-| 01 | Root Account Exposure Check | CIS 1.3, 1.4 |
-| 02 | IAM Credential Age Auditor | CIS 1.11, 1.13 |
-| 03 | MFA Enforcement Checker | CIS 1.9 |
-| 04 | IAM Hardening Audit Suite | CIS 1.3, 1.4, 1.9, 1.11, 1.13, 1.14, 1.16, 1.19 |
-
----
-
-## About
-
-Built by [Jacob Ferguson](https://linkedin.com/in/itlife) — Cybersecurity analyst at an MSSP, Rice MBA candidate, Navy veteran. Building at the intersection of technical security and compliance engineering.
-
-Follow the series on [LinkedIn](https://linkedin.com/in/itlife) | [GitHub](https://github.com/jfergITLife)
+</div>
