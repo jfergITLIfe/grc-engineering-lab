@@ -27,3 +27,14 @@ lambda_function.zip
 .env
 *.log
 *~
+
+# Python
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Evidence pack output (never commit real evidence)
+output/
+*.zip
+*.zip.sha256
