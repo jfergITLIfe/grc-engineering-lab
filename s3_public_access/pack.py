@@ -134,6 +134,66 @@ def validate_input_dir(input_dir: Path) -> dict[str, Any]:
         sys.exit(1)
 
 
+def write_organized_findings(findings_data: dict[str, Any], mappings: dict, staging_dir: Path) -> None:
+    """
+    Write findings organized by control to staging directory.
+    
+    Args:
+        findings_data: Parsed findings_raw.json dict
+        mappings: Parsed mappings.yaml dict
+        staging_dir: Directory to write findings.json
+    """
+    # Extract flat findings list
+    flat_findings = findings_data['findings']
+    
+    # Group findings by control_id
+    control_groups = {}
+    for finding in flat_findings:
+        control_id = finding['control_id']
+        if control_id not in control_groups:
+            control_groups[control_id] = []
+        control_groups[control_id].append(finding)
+    
+    # Build organized output
+    organized_output = {
+        'generated_at': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+        'collector': findings_data['collector'],
+        'collector_version': findings_data['collector_version'],
+        'schema_version': findings_data['schema_version'],
+        'aws_account_id': findings_data['aws_account_id'],
+        'summary': findings_data['summary'],
+        'controls': {}
+    }
+    
+    # Process controls in mappings order
+    for control_id in mappings['technical_checks'].keys():
+        if control_id not in control_groups:
+            continue  # Skip controls with no findings
+            
+        control_metadata = mappings['technical_checks'].get(control_id, {})
+        
+        organized_output['controls'][control_id] = {
+            'control_metadata': {
+                'title': control_metadata.get('title', ''),
+                'rationale': control_metadata.get('rationale', '').strip(),
+                'severity': control_metadata.get('measurement', {}).get('severity', ''),
+                'scope': control_metadata.get('measurement', {}).get('scope', ''),
+                'maps_to': control_metadata.get('maps_to', {
+                    'soc2': [],
+                    'cis_controls_v8': [],
+                    'iso_27001_2022': [],
+                    'nist_800_53_r5': []
+                })
+            },
+            'findings': control_groups[control_id]
+        }
+    
+    # Write organized findings
+    findings_file = staging_dir / "findings.json"
+    with open(findings_file, 'w', encoding='utf-8') as f:
+        json.dump(organized_output, f, indent=2)
+
+
 def main() -> None:
     """Main entry point for the evidence pack assembler."""
     setup_logging()
@@ -155,8 +215,9 @@ def main() -> None:
     staging_dir = Path(temp_path)
     logging.info(f"Created staging directory: {staging_dir}")
     
-    # Piece A placeholder
-    logging.info("Piece A complete — skeleton ready")
+    # Write organized findings
+    write_organized_findings(findings_data, mappings, staging_dir)
+    logging.info("Wrote findings.json (organized by control)")
     
     # Clean up staging directory
     shutil.rmtree(staging_dir)

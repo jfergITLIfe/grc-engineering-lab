@@ -44,6 +44,23 @@ soc2_controls:
 # These are what the collector actually measures.
 # ---------------------------------------------------------------------
 technical_checks:
+  EXT-ACCT-BPA-01:
+    title: "Ensure account-level S3 Block Public Access is fully enabled"
+    rationale: >
+      Account-level Block Public Access applies to all buckets
+      regardless of individual configuration, providing defense in
+      depth. This is a collector-defined extension beyond CIS
+      Benchmark v5.0.0, which does not enumerate account-level BPA
+      as a separate control.
+    measurement:
+      scope: "account"
+      severity: "high"
+    maps_to:
+      soc2: ["CC6.1", "CC6.6"]
+      cis_controls_v8: ["3.3", "14.6"]
+      iso_27001_2022: ["A.5.10", "A.8.3"]
+      nist_800_53_r5: ["AC-3", "SC-7"]
+
   CIS-AWS-2.1.4:
     title: "Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'"
     rationale: >
@@ -75,23 +92,6 @@ technical_checks:
       cis_controls_v8: ["3.3", "14.6"]
       iso_27001_2022: ["A.5.10", "A.8.3"]
       nist_800_53_r5: ["AC-3", "AC-4", "SC-7"]
-
-  EXT-ACCT-BPA-01:
-    title: "Ensure account-level S3 Block Public Access is fully enabled"
-    rationale: >
-      Account-level Block Public Access applies to all buckets
-      regardless of individual configuration, providing defense in
-      depth. This is a collector-defined extension beyond CIS
-      Benchmark v5.0.0, which does not enumerate account-level BPA
-      as a separate control.
-    measurement:
-      scope: "account"
-      severity: "high"
-    maps_to:
-      soc2: ["CC6.1", "CC6.6"]
-      cis_controls_v8: ["3.3", "14.6"]
-      iso_27001_2022: ["A.5.10", "A.8.3"]
-      nist_800_53_r5: ["AC-3", "SC-7"]
 
 # ---------------------------------------------------------------------
 # Scope declarations — what this collector does NOT cover.
