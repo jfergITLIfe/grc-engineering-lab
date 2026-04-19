@@ -124,6 +124,18 @@ def main() -> None:
     # Write collection metadata
     write_collection_metadata(args.output_dir, identity, mappings)
     logging.info("Wrote collection_metadata.json")
+    
+    # Create raw output subdirectory
+    raw_dir = args.output_dir / "raw"
+    raw_dir.mkdir(exist_ok=True)
+    
+    # Perform technical checks
+    findings = []
+    
+    # Check account-level Block Public Access (EXT-ACCT-BPA-01)
+    bpa_finding = check_account_bpa(session, identity['account_id'], raw_dir)
+    findings.append(bpa_finding)
+    logging.info(f"Account-level BPA check: {bpa_finding['status']}")
 
 
 def create_session(profile: str | None) -> boto3.Session:
@@ -201,6 +213,91 @@ def write_collection_metadata(output_dir: Path, identity: dict[str, Any], mappin
     metadata_file = output_dir / 'collection_metadata.json'
     with open(metadata_file, 'w', encoding='utf-8') as f:
         json.dump(metadata, f, indent=2)
+
+
+def check_account_bpa(session: boto3.Session, account_id: str, output_dir: Path) -> dict[str, Any]:
+    """
+    Check account-level Block Public Access settings (EXT-ACCT-BPA-01).
+    
+    Args:
+        session: Authenticated boto3 Session
+        account_id: AWS account ID
+        output_dir: Directory to write raw evidence
+        
+    Returns:
+        Finding dict with check results
+        
+    Exits:
+        If API call fails (except NoSuchPublicAccessBlockConfiguration)
+    """
+    try:
+        s3control = session.client('s3control')
+        response = s3control.get_public_access_block(AccountId=account_id)
+        
+        # Write raw response
+        raw_response = {k: v for k, v in response.items() if k != 'ResponseMetadata'}
+        raw_file = output_dir / "account_public_access_block.json"
+        with open(raw_file, 'w', encoding='utf-8') as f:
+            json.dump(raw_response, f, indent=2)
+        
+        # Evaluate settings
+        settings = raw_response.get('PublicAccessBlockConfiguration', {})
+        required_settings = [
+            'BlockPublicAcls',
+            'IgnorePublicAcls', 
+            'BlockPublicPolicy',
+            'RestrictPublicBuckets'
+        ]
+        
+        disabled_settings = []
+        for setting in required_settings:
+            if not settings.get(setting, False):
+                disabled_settings.append(setting)
+        
+        if disabled_settings:
+            return {
+                'finding_id': 'EXT-ACCT-BPA-01-account',
+                'control_id': 'EXT-ACCT-BPA-01',
+                'scope': 'account',
+                'resource_id': account_id,
+                'status': 'FAIL',
+                'severity': 'high',
+                'detail': f"Account-level Block Public Access has disabled settings: {', '.join(disabled_settings)}",
+                'evidence_ref': 'raw/account_public_access_block.json'
+            }
+        else:
+            return {
+                'finding_id': 'EXT-ACCT-BPA-01-account',
+                'control_id': 'EXT-ACCT-BPA-01',
+                'scope': 'account',
+                'resource_id': account_id,
+                'status': 'PASS',
+                'severity': 'high',
+                'detail': "Account-level Block Public Access is properly configured with all settings enabled",
+                'evidence_ref': 'raw/account_public_access_block.json'
+            }
+            
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'NoSuchPublicAccessBlockConfiguration':
+            # Account-level BPA has never been configured
+            raw_response = {'configured': False}
+            raw_file = output_dir / "account_public_access_block.json"
+            with open(raw_file, 'w', encoding='utf-8') as f:
+                json.dump(raw_response, f, indent=2)
+            
+            return {
+                'finding_id': 'EXT-ACCT-BPA-01-account',
+                'control_id': 'EXT-ACCT-BPA-01',
+                'scope': 'account',
+                'resource_id': account_id,
+                'status': 'FAIL',
+                'severity': 'high',
+                'detail': "Account-level Block Public Access has never been configured",
+                'evidence_ref': 'raw/account_public_access_block.json'
+            }
+        else:
+            logging.error(f"Failed to get account public access block: {e}")
+            sys.exit(1)
 
 
 if __name__ == "__main__":
