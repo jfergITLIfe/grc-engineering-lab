@@ -137,6 +137,10 @@ def main() -> None:
     findings.append(bpa_finding)
     logging.info(f"Account-level BPA check: {bpa_finding['status']}")
 
+    # Enumerate S3 buckets for per-bucket checks
+    buckets = enumerate_buckets(session, raw_dir)
+    logging.info(f"Enumerated {len(buckets)} bucket(s)")
+
 
 def create_session(profile: str | None) -> boto3.Session:
     """
@@ -298,6 +302,82 @@ def check_account_bpa(session: boto3.Session, account_id: str, output_dir: Path)
         else:
             logging.error(f"Failed to get account public access block: {e}")
             sys.exit(1)
+
+
+def enumerate_buckets(session: boto3.Session, raw_dir: Path) -> list[dict[str, Any]]:
+    """
+    Enumerate all S3 buckets in the account.
+    
+    Args:
+        session: Authenticated boto3 Session
+        raw_dir: Directory to write raw evidence files
+        
+    Returns:
+        List of bucket dicts with name, creation_date, and region
+        
+    Exits:
+        If unable to list buckets
+    """
+    try:
+        s3 = session.client('s3')
+        response = s3.list_buckets()
+        
+        # Create buckets subdirectory
+        buckets_dir = raw_dir / "buckets"
+        buckets_dir.mkdir(exist_ok=True)
+        
+        buckets = []
+        for bucket_data in response.get('Buckets', []):
+            bucket_name = bucket_data['Name']
+            creation_date = bucket_data['CreationDate'].isoformat().replace('+00:00', 'Z')
+            
+            # Get bucket region
+            try:
+                location_response = s3.get_bucket_location(Bucket=bucket_name)
+                location_constraint = location_response.get('LocationConstraint')
+                
+                # Normalize region names
+                if location_constraint is None or location_constraint == '':
+                    region = 'us-east-1'
+                elif location_constraint == 'EU':
+                    region = 'eu-west-1'
+                else:
+                    region = location_constraint
+                    
+            except ClientError as e:
+                logging.warning(f"Failed to get location for bucket {bucket_name}: {e.response['Error']['Code']}")
+                region = None
+                bucket_dict = {
+                    'name': bucket_name,
+                    'creation_date': creation_date,
+                    'region': region,
+                    'enumeration_error': e.response['Error']['Code']
+                }
+            else:
+                bucket_dict = {
+                    'name': bucket_name,
+                    'creation_date': creation_date,
+                    'region': region
+                }
+            
+            buckets.append(bucket_dict)
+        
+        # Write inventory file
+        inventory = {
+            'enumerated_at': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+            'bucket_count': len(buckets),
+            'buckets': buckets
+        }
+        
+        inventory_file = buckets_dir / "inventory.json"
+        with open(inventory_file, 'w', encoding='utf-8') as f:
+            json.dump(inventory, f, indent=2)
+        
+        return buckets
+        
+    except (ClientError, NoCredentialsError) as e:
+        logging.error(f"Failed to enumerate buckets: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
