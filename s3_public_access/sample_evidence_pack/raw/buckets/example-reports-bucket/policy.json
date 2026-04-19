@@ -1,0 +1,17 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowOnlyAccountAccess",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::000000000000:root"
+      },
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::example-reports-bucket",
+        "arn:aws:s3:::example-reports-bucket/*"
+      ]
+    }
+  ]
+}

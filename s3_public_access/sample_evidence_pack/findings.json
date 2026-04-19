@@ -1,0 +1,151 @@
+{
+  "generated_at": "2026-04-19T21:14:46.642927Z",
+  "collector": "s3-public-access",
+  "collector_version": "0.1.0",
+  "schema_version": "0.1.0",
+  "aws_account_id": "000000000000",
+  "summary": {
+    "total": 5,
+    "pass": 4,
+    "fail": 1,
+    "error": 0
+  },
+  "controls": {
+    "EXT-ACCT-BPA-01": {
+      "control_metadata": {
+        "title": "Ensure account-level S3 Block Public Access is fully enabled",
+        "rationale": "Account-level Block Public Access applies to all buckets regardless of individual configuration, providing defense in depth. This is a collector-defined extension beyond CIS Benchmark v5.0.0, which does not enumerate account-level BPA as a separate control.",
+        "severity": "high",
+        "scope": "account",
+        "maps_to": {
+          "soc2": [
+            "CC6.1",
+            "CC6.6"
+          ],
+          "cis_controls_v8": [
+            "3.3",
+            "14.6"
+          ],
+          "iso_27001_2022": [
+            "A.5.10",
+            "A.8.3"
+          ],
+          "nist_800_53_r5": [
+            "AC-3",
+            "SC-7"
+          ]
+        }
+      },
+      "findings": [
+        {
+          "finding_id": "EXT-ACCT-BPA-01-account",
+          "control_id": "EXT-ACCT-BPA-01",
+          "scope": "account",
+          "resource_id": "000000000000",
+          "status": "FAIL",
+          "severity": "high",
+          "detail": "Account-level Block Public Access has never been configured",
+          "evidence_ref": "raw/account_public_access_block.json"
+        }
+      ]
+    },
+    "CIS-AWS-2.1.4": {
+      "control_metadata": {
+        "title": "Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'",
+        "rationale": "Bucket-level Block Public Access settings prevent bucket policies and ACLs from granting public access. All four settings (BlockPublicAcls, IgnorePublicAcls, BlockPublicPolicy, RestrictPublicBuckets) should be enabled for defense in depth.",
+        "severity": "high",
+        "scope": "bucket",
+        "maps_to": {
+          "soc2": [
+            "CC6.1",
+            "CC6.6"
+          ],
+          "cis_controls_v8": [
+            "3.3",
+            "14.6"
+          ],
+          "iso_27001_2022": [
+            "A.5.10",
+            "A.8.3"
+          ],
+          "nist_800_53_r5": [
+            "AC-3",
+            "AC-4",
+            "SC-7"
+          ]
+        }
+      },
+      "findings": [
+        {
+          "finding_id": "CIS-AWS-2.1.4-example-reports-bucket",
+          "control_id": "CIS-AWS-2.1.4",
+          "scope": "bucket",
+          "resource_id": "example-reports-bucket",
+          "status": "PASS",
+          "severity": "high",
+          "detail": "Bucket Block Public Access is properly configured with all settings enabled",
+          "evidence_ref": "raw/buckets/example-reports-bucket/public_access_block.json"
+        },
+        {
+          "finding_id": "CIS-AWS-2.1.4-aws-cloudtrail-logs-000000000000-example",
+          "control_id": "CIS-AWS-2.1.4",
+          "scope": "bucket",
+          "resource_id": "aws-cloudtrail-logs-000000000000-example",
+          "status": "PASS",
+          "severity": "high",
+          "detail": "Bucket Block Public Access is properly configured with all settings enabled",
+          "evidence_ref": "raw/buckets/aws-cloudtrail-logs-000000000000-example/public_access_block.json"
+        }
+      ]
+    },
+    "CIS-AWS-2.1.5": {
+      "control_metadata": {
+        "title": "Ensure that S3 Buckets are not publicly accessible via bucket policy or ACL",
+        "rationale": "Even with Block Public Access enabled, bucket policies and ACLs may grant access to AllUsers or AuthenticatedUsers, or use Principal:* without restricting conditions. These grants expose objects to anonymous access.",
+        "severity": "critical",
+        "scope": "bucket",
+        "maps_to": {
+          "soc2": [
+            "CC6.1",
+            "CC6.6"
+          ],
+          "cis_controls_v8": [
+            "3.3",
+            "14.6"
+          ],
+          "iso_27001_2022": [
+            "A.5.10",
+            "A.8.3"
+          ],
+          "nist_800_53_r5": [
+            "AC-3",
+            "AC-4",
+            "SC-7"
+          ]
+        }
+      },
+      "findings": [
+        {
+          "finding_id": "CIS-AWS-2.1.5-example-reports-bucket",
+          "control_id": "CIS-AWS-2.1.5",
+          "scope": "bucket",
+          "resource_id": "example-reports-bucket",
+          "status": "PASS",
+          "severity": "critical",
+          "detail": "No public access detected in bucket policy or ACL",
+          "evidence_ref": "raw/buckets/example-reports-bucket/"
+        },
+        {
+          "finding_id": "CIS-AWS-2.1.5-aws-cloudtrail-logs-000000000000-example",
+          "control_id": "CIS-AWS-2.1.5",
+          "scope": "bucket",
+          "resource_id": "aws-cloudtrail-logs-000000000000-example",
+          "status": "PASS",
+          "severity": "critical",
+          "detail": "No public access detected in bucket policy or ACL",
+          "evidence_ref": "raw/buckets/aws-cloudtrail-logs-000000000000-example/"
+        }
+      ]
+    }
+  }
+}

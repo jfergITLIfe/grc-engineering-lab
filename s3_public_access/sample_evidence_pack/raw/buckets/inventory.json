@@ -1,0 +1,16 @@
+{
+  "enumerated_at": "2026-04-19T19:40:29.730740Z",
+  "bucket_count": 2,
+  "buckets": [
+    {
+      "name": "example-reports-bucket",
+      "creation_date": "2026-04-12T16:05:11Z",
+      "region": "us-east-1"
+    },
+    {
+      "name": "aws-cloudtrail-logs-000000000000-example",
+      "creation_date": "2026-04-04T02:25:55Z",
+      "region": "us-east-2"
+    }
+  ]
+}

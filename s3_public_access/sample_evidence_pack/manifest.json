@@ -1,0 +1,84 @@
+{
+  "generated_at": "2026-04-19T21:14:46.966777Z",
+  "collector": "s3-public-access",
+  "collector_version": "0.1.0",
+  "aws_account_id": "000000000000",
+  "file_count": 15,
+  "files": [
+    {
+      "path": "collection_metadata.json",
+      "size_bytes": 278,
+      "sha256": "427c92e5d4cef7895548431135d1dd49d0970b8879bdcac151a3fff440eb7320"
+    },
+    {
+      "path": "collector_iam_policy.json",
+      "size_bytes": 421,
+      "sha256": "0eac033aff578effb1b4755bedfaf3314874f1ed161081f00fb022c34748f2d1"
+    },
+    {
+      "path": "findings.json",
+      "size_bytes": 5115,
+      "sha256": "079db99643cd0ea29b6d899620abcd0b324b41663958cce6d15580f8a6de1cdc"
+    },
+    {
+      "path": "raw/account_public_access_block.json",
+      "size_bytes": 25,
+      "sha256": "dcf95ca8f25917e70def43ccdb2bc1f3f2083309530454ea65fbba9c083ac376"
+    },
+    {
+      "path": "raw/buckets/aws-cloudtrail-logs-000000000000-example/acl.json",
+      "size_bytes": 305,
+      "sha256": "eea65a32967971ac01a0bdf104c7c3b27cddc59675300c2307cbec4c7efa0213"
+    },
+    {
+      "path": "raw/buckets/aws-cloudtrail-logs-000000000000-example/policy.json",
+      "size_bytes": 1066,
+      "sha256": "b6069a46c26d5b13ba6af953811e826a2620e27af960174f13b7fb4907bc2985"
+    },
+    {
+      "path": "raw/buckets/aws-cloudtrail-logs-000000000000-example/policy_status.json",
+      "size_bytes": 49,
+      "sha256": "8ccb105dfdccab28376b76bbed9acefb631252b85213ab99b3853756ffe37334"
+    },
+    {
+      "path": "raw/buckets/aws-cloudtrail-logs-000000000000-example/public_access_block.json",
+      "size_bytes": 169,
+      "sha256": "c08a41f876c944cb27230fb0e572817844f54fabf5ef2ebfffed308bafb2f025"
+    },
+    {
+      "path": "raw/buckets/example-reports-bucket/acl.json",
+      "size_bytes": 305,
+      "sha256": "eea65a32967971ac01a0bdf104c7c3b27cddc59675300c2307cbec4c7efa0213"
+    },
+    {
+      "path": "raw/buckets/example-reports-bucket/policy.json",
+      "size_bytes": 352,
+      "sha256": "ac7bffb43efc5f2a128739f21ef0707c739c72b1ed2de27199ed095c5a473c3b"
+    },
+    {
+      "path": "raw/buckets/example-reports-bucket/policy_status.json",
+      "size_bytes": 49,
+      "sha256": "8ccb105dfdccab28376b76bbed9acefb631252b85213ab99b3853756ffe37334"
+    },
+    {
+      "path": "raw/buckets/example-reports-bucket/public_access_block.json",
+      "size_bytes": 169,
+      "sha256": "c08a41f876c944cb27230fb0e572817844f54fabf5ef2ebfffed308bafb2f025"
+    },
+    {
+      "path": "raw/buckets/inventory.json",
+      "size_bytes": 366,
+      "sha256": "df0949a0c009cac4f94fe4aa8cc0aecbc7e519ca6fb5a3b21fa4568113ec741a"
+    },
+    {
+      "path": "report.md",
+      "size_bytes": 5823,
+      "sha256": "03990f01675ca43fa8f4ab697acf95239a678eeb1fce86a264a8a48a1fc9adb9"
+    },
+    {
+      "path": "report.pdf",
+      "size_bytes": 32238,
+      "sha256": "a14df3b0b0455848754ecd2a7281e3257bb1743ec4d27cd0e5efe893aa5acf60"
+    }
+  ]
+}

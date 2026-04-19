@@ -1,0 +1,9 @@
+{
+  "collector": "s3-public-access",
+  "collector_version": "0.1.0",
+  "schema_version": "0.1.0",
+  "collected_at": "2026-04-19T19:40:29.065954Z",
+  "aws_account_id": "000000000000",
+  "caller_arn": "arn:aws:iam::000000000000:user/Example",
+  "user_id": "AIDAEXAMPLEEXAMPLEEX"
+}
