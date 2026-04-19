@@ -147,6 +147,10 @@ def main() -> None:
         findings.extend(bucket_findings)
         for finding in bucket_findings:
             logging.info(f"{finding['control_id']} on {finding['resource_id']}: {finding['status']}")
+        
+    # Write findings to JSON file
+    write_findings(findings, args.output_dir, identity, mappings)
+    logging.info(f"Wrote findings_raw.json ({len(findings)} findings)")
 
 
 def create_session(profile: str | None) -> boto3.Session:
@@ -607,6 +611,38 @@ def check_bucket_public_access(session: boto3.Session, bucket: dict[str, Any], r
     findings.append(policy_finding)
     
     return findings
+
+
+def write_findings(findings: list[dict[str, Any]], output_dir: Path, identity: dict[str, Any], mappings: dict) -> None:
+    """
+    Write findings to JSON file.
+    
+    Args:
+        findings: List of finding dicts from the checks
+        output_dir: Directory to write the findings file
+        identity: AWS identity dict with account_id, caller_arn, user_id
+        mappings: Parsed mappings.yaml dict
+    """
+    summary = {
+        'total': len(findings),
+        'pass': sum(1 for f in findings if f['status'] == 'PASS'),
+        'fail': sum(1 for f in findings if f['status'] == 'FAIL'),
+        'error': sum(1 for f in findings if f['status'] == 'ERROR')
+    }
+    
+    output_data = {
+        'generated_at': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+        'collector': mappings['collector'],
+        'collector_version': mappings['collector_version'],
+        'schema_version': mappings['schema_version'],
+        'aws_account_id': identity['account_id'],
+        'summary': summary,
+        'findings': findings
+    }
+    
+    findings_file = output_dir / "findings_raw.json"
+    with open(findings_file, 'w', encoding='utf-8') as f:
+        json.dump(output_data, f, indent=2)
 
 
 if __name__ == "__main__":
