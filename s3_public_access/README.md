@@ -108,6 +108,10 @@ This collector operates with strict read-only permissions and cannot modify stat
 
 The architecture separates collection from packaging. `collector.py` makes read-only AWS API calls and writes flat JSON files to a staging directory. `pack.py` processes this raw data, groups findings, injects framework metadata from `mappings.yaml`, renders the Jinja2/WeasyPrint templates, and zips the final artifact with cryptographic hashes.
 
+## Documentation & Execution
+
+For detailed, step-by-step instructions on running the collector, packaging evidence, and verifying cryptographic integrity, please see the [Standard Operating Procedure (SOP)](SOP.md).
+
 ---
 **Author:** [Jacob Ferguson](https://www.linkedin.com/in/itlife/)  
 **License:** MIT
