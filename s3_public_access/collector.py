@@ -141,6 +141,13 @@ def main() -> None:
     buckets = enumerate_buckets(session, raw_dir)
     logging.info(f"Enumerated {len(buckets)} bucket(s)")
 
+    # Per-bucket public access checks (CIS-AWS-2.1.4 and CIS-AWS-2.1.5)
+    for bucket in buckets: 
+        bucket_findings = check_bucket_public_access(session, bucket, raw_dir)
+        findings.extend(bucket_findings)
+        for finding in bucket_findings:
+            logging.info(f"{finding['control_id']} on {finding['resource_id']}: {finding['status']}")
+
 
 def create_session(profile: str | None) -> boto3.Session:
     """
@@ -378,6 +385,228 @@ def enumerate_buckets(session: boto3.Session, raw_dir: Path) -> list[dict[str, A
     except (ClientError, NoCredentialsError) as e:
         logging.error(f"Failed to enumerate buckets: {e}")
         sys.exit(1)
+
+
+def check_bucket_public_access(session: boto3.Session, bucket: dict[str, Any], raw_dir: Path) -> list[dict[str, Any]]:
+    """
+    Check bucket-level public access settings.
+    
+    Args:
+        session: Authenticated boto3 Session
+        bucket: Bucket dict with name, creation_date, region, and optional enumeration_error
+        raw_dir: Base raw evidence directory
+        
+    Returns:
+        List of two findings: CIS-AWS-2.1.4 (BPA) and CIS-AWS-2.1.5 (policy/ACL)
+    """
+    findings = []
+    
+    # Step 0: Handle enumeration errors
+    if 'enumeration_error' in bucket:
+        error_detail = f"Bucket could not be evaluated due to enumeration error: {bucket['enumeration_error']}"
+        evidence_ref = 'raw/buckets/inventory.json'
+        
+        bpa_finding = {
+            'finding_id': f'CIS-AWS-2.1.4-{bucket["name"]}',
+            'control_id': 'CIS-AWS-2.1.4',
+            'scope': 'bucket',
+            'resource_id': bucket["name"],
+            'status': 'ERROR',
+            'severity': 'high',
+            'detail': error_detail,
+            'evidence_ref': evidence_ref
+        }
+        
+        policy_finding = {
+            'finding_id': f'CIS-AWS-2.1.5-{bucket["name"]}',
+            'control_id': 'CIS-AWS-2.1.5',
+            'scope': 'bucket',
+            'resource_id': bucket["name"],
+            'status': 'ERROR',
+            'severity': 'critical',
+            'detail': error_detail,
+            'evidence_ref': evidence_ref
+        }
+        
+        return [bpa_finding, policy_finding]
+    
+    # Step 1: Create per-bucket evidence subdirectory
+    bucket_dir = raw_dir / "buckets" / bucket["name"]
+    bucket_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Step 2: Create regional S3 client
+    s3 = session.client('s3', region_name=bucket["region"])
+    
+    # Step 3: CIS-AWS-2.1.4 - Bucket-level Block Public Access
+    try:
+        bpa_response = s3.get_public_access_block(Bucket=bucket["name"])
+        bpa_data = {k: v for k, v in bpa_response.items() if k != 'ResponseMetadata'}
+        
+        # Write BPA evidence
+        bpa_file = bucket_dir / "public_access_block.json"
+        with open(bpa_file, 'w', encoding='utf-8') as f:
+            json.dump(bpa_data, f, indent=2)
+        
+        # Evaluate BPA settings
+        settings = bpa_data.get('PublicAccessBlockConfiguration', {})
+        required_settings = ['BlockPublicAcls', 'IgnorePublicAcls', 'BlockPublicPolicy', 'RestrictPublicBuckets']
+        
+        disabled_settings = []
+        for setting in required_settings:
+            if not settings.get(setting, False):
+                disabled_settings.append(setting)
+        
+        if disabled_settings:
+            bpa_status = 'FAIL'
+            bpa_detail = f"Bucket Block Public Access has disabled settings: {', '.join(disabled_settings)}"
+        else:
+            bpa_status = 'PASS'
+            bpa_detail = "Bucket Block Public Access is properly configured with all settings enabled"
+            
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'NoSuchPublicAccessBlockConfiguration':
+            # No BPA configuration
+            bpa_data = {'configured': False}
+            bpa_file = bucket_dir / "public_access_block.json"
+            with open(bpa_file, 'w', encoding='utf-8') as f:
+                json.dump(bpa_data, f, indent=2)
+            
+            bpa_status = 'FAIL'
+            bpa_detail = "Bucket has no Block Public Access configuration"
+        else:
+            logging.warning(f"Failed to get BPA for bucket {bucket['name']}: {e.response['Error']['Code']}")
+            bpa_status = 'ERROR'
+            bpa_detail = f"API error retrieving Block Public Access: {e.response['Error']['Code']}"
+    
+    bpa_finding = {
+        'finding_id': f'CIS-AWS-2.1.4-{bucket["name"]}',
+        'control_id': 'CIS-AWS-2.1.4',
+        'scope': 'bucket',
+        'resource_id': bucket["name"],
+        'status': bpa_status,
+        'severity': 'high',
+        'detail': bpa_detail,
+        'evidence_ref': f'raw/buckets/{bucket["name"]}/public_access_block.json'
+    }
+    findings.append(bpa_finding)
+    
+    # Step 4: CIS-AWS-2.1.5 - Policy and ACL public access
+    try:
+        # 4a: Policy status
+        try:
+            policy_status_response = s3.get_bucket_policy_status(Bucket=bucket["name"])
+            policy_status_data = {k: v for k, v in policy_status_response.items() if k != 'ResponseMetadata'}
+            is_public = policy_status_data.get('PolicyStatus', {}).get('IsPublic', False)
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'NoSuchBucketPolicy':
+                policy_status_data = {'has_policy_status': False}
+                is_public = False
+            else:
+                raise e
+        
+        # Write policy status evidence
+        policy_status_file = bucket_dir / "policy_status.json"
+        with open(policy_status_file, 'w', encoding='utf-8') as f:
+            json.dump(policy_status_data, f, indent=2)
+        
+        # 4b: Bucket policy
+        policy_data = None
+        try:
+            policy_response = s3.get_bucket_policy(Bucket=bucket["name"])
+            policy_json = json.loads(policy_response['Policy'])
+            policy_data = policy_json
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'NoSuchBucketPolicy':
+                policy_data = None
+            else:
+                raise e
+        
+        # Write policy evidence
+        policy_file = bucket_dir / "policy.json"
+        with open(policy_file, 'w', encoding='utf-8') as f:
+            if policy_data:
+                json.dump(policy_data, f, indent=2)
+            else:
+                json.dump({'has_policy': False}, f, indent=2)
+        
+        # 4c: Bucket ACL
+        acl_grants = []
+        public_acls = []
+        try:
+            acl_response = s3.get_bucket_acl(Bucket=bucket["name"])
+            acl_data = {k: v for k, v in acl_response.items() if k != 'ResponseMetadata'}
+            
+            # Check for public grants
+            for grant in acl_data.get('Grants', []):
+                grantee = grant.get('Grantee', {})
+                uri = grantee.get('URI')
+                if uri in ['http://acs.amazonaws.com/groups/global/AllUsers', 'http://acs.amazonaws.com/groups/global/AuthenticatedUsers']:
+                    public_acls.append({
+                        'grantee': uri,
+                        'permission': grant.get('Permission')
+                    })
+                    
+        except ClientError as e:
+            raise e
+        
+        # Write ACL evidence
+        acl_file = bucket_dir / "acl.json"
+        with open(acl_file, 'w', encoding='utf-8') as f:
+            json.dump(acl_data, f, indent=2)
+        
+        # 4d: Determine status
+        policy_public_details = []
+        if is_public and policy_data:
+            for i, statement in enumerate(policy_data.get('Statement', [])):
+                if statement.get('Effect') == 'Allow':
+                    principal = statement.get('Principal', {})
+                    is_public_principal = (principal == '*' or 
+                                         (isinstance(principal, dict) and principal.get('AWS') == '*'))
+                    has_conditions = 'Condition' in statement
+                    
+                    if is_public_principal and not has_conditions:
+                        sid = statement.get('Sid', f"Statement {i}")
+                        policy_public_details.append(f"Policy statement '{sid}' grants public access")
+                    elif is_public_principal and has_conditions:
+                        sid = statement.get('Sid', f"Statement {i}")
+                        policy_public_details.append(f"Policy statement '{sid}' grants public access (has conditions, not evaluated)")
+        
+        acl_public_details = []
+        for acl in public_acls:
+            grantee_name = "AllUsers" if "AllUsers" in acl['grantee'] else "AuthenticatedUsers"
+            acl_public_details.append(f"ACL grants {acl['permission']} to {grantee_name}")
+        
+        # 4e: Build detail and determine status
+        if is_public or public_acls:
+            status = 'FAIL'
+            detail_parts = []
+            if policy_public_details:
+                detail_parts.extend(policy_public_details)
+            if acl_public_details:
+                detail_parts.extend(acl_public_details)
+            detail = "Public access detected: " + "; ".join(detail_parts)
+        else:
+            status = 'PASS'
+            detail = "No public access detected in bucket policy or ACL"
+            
+    except ClientError as e:
+        logging.warning(f"Failed to check policy/ACL for bucket {bucket['name']}: {e.response['Error']['Code']}")
+        status = 'ERROR'
+        detail = f"API error checking policy/ACL: {e.response['Error']['Code']}"
+    
+    policy_finding = {
+        'finding_id': f'CIS-AWS-2.1.5-{bucket["name"]}',
+        'control_id': 'CIS-AWS-2.1.5',
+        'scope': 'bucket',
+        'resource_id': bucket["name"],
+        'status': status,
+        'severity': 'critical',
+        'detail': detail,
+        'evidence_ref': f'raw/buckets/{bucket["name"]}/'
+    }
+    findings.append(policy_finding)
+    
+    return findings
 
 
 if __name__ == "__main__":
