@@ -95,4 +95,4 @@ Jacob Ferguson. Cybersecurity analyst, Rice MBA candidate, Navy veteran, GRC eng
 
 ## License
 
-*(To be decided. Leaning MIT for the library, reserving rights on the agent layer pending scope decisions.)*
+MIT. See `LICENSE` for details.
